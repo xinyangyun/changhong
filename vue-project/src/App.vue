@@ -13,13 +13,35 @@ const navItems = [
   { id: "lessons", label: "经验教训" },
 ];
 
-const analysisItems = [
-  { label: "趋势强度", value: "偏强", detail: "均线多头排列，短期动能保持" },
-  { label: "资金关注", value: "高", detail: "近 5 日主力净流入排名靠前" },
-  { label: "风险提示", value: "中", detail: "高位震荡时注意成交量变化" },
-];
-
 const sectors = computed(() => fundFlowData.value?.sectors ?? []);
+const stocks = ref([
+  { name: "贵州茅台", code: "600519", price: "1,482.50", change: "+1.28%", desc: "白酒龙头保持稳健走势，短期关注量能是否继续配合。" },
+]);
+const activeStockIndex = ref(0);
+
+const showAddStock = ref(false);
+const newStockCode = ref("");
+
+function addStock() {
+  if (!newStockCode.value) return;
+  stocks.value.push({
+    name: newStockCode.value,
+    code: newStockCode.value,
+    price: "待更新",
+    change: "待更新",
+    desc: "等待数据分析",
+  });
+  newStockCode.value = "";
+  activeStockIndex.value = stocks.value.length - 1;
+  showAddStock.value = false;
+}
+
+function removeStock(index) {
+  stocks.value.splice(index, 1);
+  if (activeStockIndex.value >= stocks.value.length) {
+    activeStockIndex.value = Math.max(0, stocks.value.length - 1);
+  }
+}
 const summary = computed(() => fundFlowData.value?.summary ?? null);
 const activeSector = computed(() => {
   return sectors.value.find((sector) => sector.id === activeSectorId.value) ?? sectors.value[0] ?? null;
@@ -175,22 +197,61 @@ onMounted(loadFundFlows);
         </template>
       </section>
 
-      <section v-else-if="activeView === 'analysis'" class="content-grid analysis-grid">
-        <article class="stock-card">
-          <p class="eyebrow">Stock Focus</p>
-          <h2>贵州茅台 600519</h2>
-          <div class="price-line">
-            <strong>1,482.50</strong>
-            <span>+1.28%</span>
-          </div>
-          <p>白酒龙头保持稳健走势，短期关注量能是否继续配合。</p>
-        </article>
+      <section v-else-if="activeView === 'analysis'" class="funds-layout">
+        <div class="sector-tabs" aria-label="个股切换">
+          <button
+            v-for="(stock, si) in stocks"
+            :key="stock.code"
+            type="button"
+            :class="{ active: activeStockIndex === si }"
+            @click="activeStockIndex = si"
+          >
+            <span>{{ stock.name }}</span>
+            <strong>{{ stock.code }}</strong>
+          </button>
+          <button type="button" class="add-stock-tab" @click="showAddStock = true">＋</button>
+        </div>
 
-        <article v-for="item in analysisItems" :key="item.label" class="summary-card">
-          <span>{{ item.label }}</span>
-          <strong>{{ item.value }}</strong>
-          <small>{{ item.detail }}</small>
-        </article>
+        <template v-if="stocks.length > 0">
+          <div class="content-grid analysis-grid">
+            <article class="stock-card">
+              <p class="eyebrow">Stock Focus</p>
+              <h2>{{ stocks[activeStockIndex].name }} {{ stocks[activeStockIndex].code }}</h2>
+              <div class="price-line">
+                <strong>{{ stocks[activeStockIndex].price }}</strong>
+                <span>{{ stocks[activeStockIndex].change }}</span>
+              </div>
+              <p>{{ stocks[activeStockIndex].desc }}</p>
+              <button type="button" class="delete-stock-btn" @click="removeStock(activeStockIndex)" v-if="stocks.length > 1">删除该股</button>
+            </article>
+
+            <article class="summary-card">
+              <span>趋势强度</span>
+              <strong>偏强</strong>
+              <small>均线多头排列，短期动能保持</small>
+            </article>
+            <article class="summary-card">
+              <span>资金关注</span>
+              <strong>高</strong>
+              <small>近 5 日主力净流入排名靠前</small>
+            </article>
+            <article class="summary-card">
+              <span>风险提示</span>
+              <strong>中</strong>
+              <small>高位震荡时注意成交量变化</small>
+            </article>
+          </div>
+        </template>
+
+        <div v-if="showAddStock" class="add-item-area">
+          <form class="add-form" @submit.prevent="addStock">
+            <input v-model="newStockCode" placeholder="输入股票名称或代码" required />
+            <div class="form-actions">
+              <button type="submit" class="add-btn submit">确认添加</button>
+              <button type="button" class="cancel-btn" @click="showAddStock = false">取消</button>
+            </div>
+          </form>
+        </div>
       </section>
 
       <section v-else-if="activeView === 'lessons'" class="lessons-layout">

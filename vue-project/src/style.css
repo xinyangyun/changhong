@@ -382,6 +382,150 @@ h2 {
   font-weight: 800;
 }
 
+.add-item-area {
+  grid-column: 1 / -1;
+}
+
+.add-btn {
+  align-items: center;
+  background: #ffffff;
+  border: 2px dashed #d0d7e3;
+  border-radius: 8px;
+  color: #0f766e;
+  cursor: pointer;
+  display: flex;
+  font-size: 0.95rem;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 56px;
+  padding: 0 24px;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.add-btn:hover {
+  background: #f0fdfa;
+  border-color: #0f766e;
+}
+
+.add-btn.submit {
+  background: #0f766e;
+  border: 1px solid #0f766e;
+  color: #ffffff;
+  min-height: 40px;
+  width: auto;
+}
+
+.add-btn.submit:hover {
+  background: #115e59;
+}
+
+.add-form {
+  background: #ffffff;
+  border: 1px solid #dde4ee;
+  border-radius: 8px;
+  padding: 18px 22px;
+}
+
+.add-form input {
+  border: 1px solid #d0d7e3;
+  border-radius: 6px;
+  display: block;
+  font-size: 0.92rem;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  width: 100%;
+}
+
+.add-form input:focus {
+  border-color: #0f766e;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.cancel-btn {
+  background: transparent;
+  border: 1px solid #d0d7e3;
+  border-radius: 6px;
+  color: #596579;
+  cursor: pointer;
+  font-weight: 600;
+  min-height: 40px;
+  padding: 0 18px;
+}
+
+.cancel-btn:hover {
+  background: #f5f7fa;
+}
+
+.remove-btn {
+  background: transparent;
+  border: 0;
+  color: #9ca3af;
+  cursor: pointer;
+  display: block;
+  font-size: 1.1rem;
+  margin-top: 6px;
+  padding: 0;
+}
+
+.remove-btn:hover {
+  color: #dc2626;
+}
+
+.add-stock-tab {
+  align-items: center;
+  background: #ffffff;
+  border: 2px dashed #d0d7e3 !important;
+  border-radius: 8px;
+  color: #0f766e;
+  cursor: pointer;
+  display: flex;
+  font-size: 1.5rem;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 82px;
+  padding: 16px;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.add-stock-tab:hover {
+  background: #f0fdfa;
+  border-color: #0f766e !important;
+}
+
+.delete-stock-btn {
+  background: transparent;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 0.82rem;
+  margin-top: 14px;
+  padding: 6px 14px;
+}
+
+.delete-stock-btn:hover {
+  background: #fef2f2;
+}
+
+.summary-card {
+  position: relative;
+}
+
+.remove-btn {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+}
+
 @media (max-width: 760px) {
   .topbar {
     align-items: stretch;
