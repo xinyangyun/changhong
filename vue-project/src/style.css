@@ -297,6 +297,25 @@ h2 {
   grid-template-columns: 1.3fr 0.72fr 0.8fr 1fr 0.72fr 1fr;
 }
 
+.table-row.lesson-table {
+  grid-template-columns: 0.8fr 1.2fr 1fr;
+  min-height: 64px;
+}
+
+.lessons-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.lessons-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.lessons-grid .summary-card strong {
+  font-size: 1.3rem;
+  line-height: 1.3;
+}
+
 .table-row + .table-row {
   border-top: 1px solid #e7ebf2;
 }
@@ -380,6 +399,8 @@ h2 {
 
   .content-grid,
   .analysis-grid,
+  .lessons-grid,
+  .lessons-layout,
   .sector-tabs,
   .sector-overview {
     grid-template-columns: 1fr;
@@ -397,5 +418,10 @@ h2 {
   .table-row.fund-table {
     grid-template-columns: 128px 72px 82px 108px 76px 98px;
     min-width: 620px;
+  }
+
+  .table-row.lesson-table {
+    grid-template-columns: 0.72fr 1fr 1fr;
+    min-width: 480px;
   }
 }
