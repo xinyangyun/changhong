@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 const activeView = ref("funds");
 const activeSectorId = ref("");
@@ -10,6 +10,7 @@ const fundFlowError = ref("");
 const navItems = [
   { id: "funds", label: "主力资金" },
   { id: "analysis", label: "个股分析" },
+  { id: "t-monitor", label: "做 T 监控" },
   { id: "lessons", label: "经验教训" },
 ];
 
@@ -21,6 +22,12 @@ const activeStockIndex = ref(0);
 
 const showAddStock = ref(false);
 const newStockCode = ref("");
+const monitorCode = ref("600519");
+const monitorQuote = ref(null);
+const monitorHover = ref(null);
+const isLoadingMonitor = ref(false);
+const monitorError = ref("");
+let monitorTimer;
 
 function addStock() {
   if (!newStockCode.value) return;
@@ -43,6 +50,30 @@ function removeStock(index) {
   }
 }
 const summary = computed(() => fundFlowData.value?.summary ?? null);
+const monitorLevels = computed(() => {
+  if (!monitorQuote.value) return [];
+  return Array.from({ length: 21 }, (_, index) => 10 - index).map((percent) => ({
+    percent,
+    price: monitorQuote.value.initial_price * (1 + percent / 100),
+  }));
+});
+const markerPosition = (changePercent) => {
+  const change = Math.max(-10, Math.min(10, changePercent ?? 0));
+  return 2.381 + ((10 - change) / 20) * 95.238;
+};
+const monitorCurrentPosition = computed(() => markerPosition(monitorQuote.value?.change_percent));
+const monitorAveragePosition = computed(() => markerPosition(monitorQuote.value?.average_change_percent));
+function updateMonitorHover(event) {
+  if (!monitorQuote.value) return;
+  const bounds = event.currentTarget.getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height));
+  const changePercent = 10 - ratio * 20;
+  monitorHover.value = {
+    position: ratio * 100,
+    changePercent,
+    price: monitorQuote.value.initial_price * (1 + changePercent / 100),
+  };
+}
 const activeSector = computed(() => {
   return sectors.value.find((sector) => sector.id === activeSectorId.value) ?? sectors.value[0] ?? null;
 });
@@ -68,7 +99,36 @@ async function loadFundFlows() {
   }
 }
 
+async function loadTMonitorQuote() {
+  if (isLoadingMonitor.value) return;
+  isLoadingMonitor.value = true;
+  monitorError.value = "";
+
+  try {
+    const code = monitorCode.value.replace(/\D/g, "").slice(0, 6) || "600519";
+    monitorCode.value = code;
+    const response = await fetch(`http://127.0.0.1:8000/api/stocks/t-monitor?code=${code}`);
+    if (!response.ok) throw new Error(`接口返回 ${response.status}`);
+    monitorQuote.value = await response.json();
+  } catch (error) {
+    monitorError.value = error instanceof Error ? error.message : "行情加载失败";
+  } finally {
+    isLoadingMonitor.value = false;
+  }
+}
+
+function startTMonitor() {
+  window.clearInterval(monitorTimer);
+  loadTMonitorQuote();
+  monitorTimer = window.setInterval(loadTMonitorQuote, 3000);
+}
+
 onMounted(loadFundFlows);
+watch(activeView, (view) => {
+  window.clearInterval(monitorTimer);
+  if (view === "t-monitor") startTMonitor();
+});
+onBeforeUnmount(() => window.clearInterval(monitorTimer));
 </script>
 
 <template>
@@ -77,7 +137,7 @@ onMounted(loadFundFlows);
       <div class="brand">
         <span class="brand-mark">CH</span>
         <div>
-          <strong>长虹证券看板</strong>
+          <strong>盛南晨</strong>
           <span>A 股资金与个股研判</span>
         </div>
       </div>
@@ -96,7 +156,7 @@ onMounted(loadFundFlows);
     </header>
 
     <main class="workspace">
-      <section class="hero">
+      <section v-if="activeView !== 't-monitor'" class="hero">
         <p class="eyebrow">Market Dashboard</p>
         <h1>主力动向与个股机会一屏掌握</h1>
         <p class="intro">聚焦资金流、趋势强弱和风险信号，给日常盯盘一个清爽入口。</p>
@@ -252,6 +312,86 @@ onMounted(loadFundFlows);
             </div>
           </form>
         </div>
+      </section>
+
+      <section v-else-if="activeView === 't-monitor'" class="t-monitor-layout">
+        <form class="monitor-toolbar" @submit.prevent="startTMonitor">
+          <label for="monitor-code">监控股票</label>
+          <input id="monitor-code" v-model="monitorCode" inputmode="numeric" maxlength="6" placeholder="输入股票代码" />
+          <button type="submit" class="monitor-refresh" :disabled="isLoadingMonitor" title="立即刷新">刷新行情</button>
+          <span class="mock-badge">模拟行情 · 每 3 秒刷新</span>
+        </form>
+
+        <div v-if="monitorError" class="state-panel error">
+          <strong>行情加载失败</strong>
+          <span>{{ monitorError }}。请确认 Python 后端已启动。</span>
+        </div>
+
+        <template v-if="monitorQuote">
+          <section class="monitor-heading">
+            <div>
+              <p class="eyebrow">T Monitor</p>
+              <h2>{{ monitorQuote.stock.name }} <span>{{ monitorQuote.stock.code }}</span></h2>
+            </div>
+            <div class="monitor-updated"><i></i>更新于 {{ monitorQuote.updated_at }}</div>
+          </section>
+
+          <section class="monitor-chart-panel">
+            <div class="panel-head">
+              <div>
+                <h2>初始价上下分布</h2>
+                <span>初始价为 0%，上下 10% 范围内每 1% 一个刻度</span>
+              </div>
+            </div>
+            <div class="monitor-reference-line">
+              <div class="reference-value">
+                <span>当日初始价格</span>
+                <strong>¥{{ monitorQuote.initial_price.toFixed(2) }}</strong>
+              </div>
+            </div>
+            <div
+              class="monitor-chart"
+              aria-label="初始价格上下 10% 分布图，移动指针查看任意位置的涨跌幅和价格"
+              @pointermove="updateMonitorHover"
+              @pointerleave="monitorHover = null"
+            >
+              <div class="monitor-price-marker current-marker" :style="{ top: `${monitorCurrentPosition}%` }">
+                <span>现价 +{{ monitorQuote.change_percent.toFixed(1) }}% ¥{{ monitorQuote.current_price.toFixed(2) }}</span>
+              </div>
+              <div class="monitor-price-marker average-marker" :style="{ top: `${monitorAveragePosition}%` }">
+                <span>均价 +{{ monitorQuote.average_change_percent.toFixed(1) }}% ¥{{ monitorQuote.average_price.toFixed(2) }}</span>
+              </div>
+              <div
+                v-if="monitorHover"
+                class="monitor-hover-marker"
+                :style="{ top: `${monitorHover.position}%` }"
+                aria-live="polite"
+              >
+                <span>{{ monitorHover.changePercent >= 0 ? '+' : '' }}{{ monitorHover.changePercent.toFixed(2) }}% · ¥{{ monitorHover.price.toFixed(2) }}</span>
+              </div>
+              <div
+                v-for="level in monitorLevels"
+                :key="level.percent"
+                class="monitor-chart-row"
+                :class="{
+                  initial: level.percent === 0,
+                  positive: level.percent > 0,
+                  negative: level.percent < 0,
+                  'current-level': Math.round(monitorQuote.change_percent) === level.percent,
+                  'average-level': Math.round(monitorQuote.average_change_percent) === level.percent,
+                }"
+                :aria-label="`${level.percent > 0 ? '+' : ''}${level.percent}%，¥${level.price.toFixed(2)}`"
+              >
+                <span class="level-percent">{{ level.percent > 0 ? '+' : '' }}{{ level.percent }}%</span>
+                <span class="level-rule"></span>
+                <strong class="level-price">¥{{ level.price.toFixed(2) }}</strong>
+              </div>
+            </div>
+            <div class="chart-legend"><span class="initial-key">初始价</span><span class="average-key">均价</span><span class="current-key">现价</span></div>
+            <p class="chart-disclaimer">模拟行情，仅用于界面演示；价格分布按初始价格计算，不构成交易建议。</p>
+          </section>
+        </template>
+        <div v-else-if="isLoadingMonitor" class="state-panel">正在获取模拟行情...</div>
       </section>
 
       <section v-else-if="activeView === 'lessons'" class="lessons-layout">

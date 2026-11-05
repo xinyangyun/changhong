@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from .fund_flow import get_sector_fund_flows
+from .t_monitor import get_t_monitor_quote
 
 
 HOST = "127.0.0.1"
@@ -25,6 +26,11 @@ class ApiHandler(BaseHTTPRequestHandler):
 
         if path == "/api/sectors/fund-flows":
             self.send_json(get_sector_fund_flows())
+            return
+
+        if path == "/api/stocks/t-monitor":
+            query = parse_qs(urlparse(self.path).query)
+            self.send_json(get_t_monitor_quote(query.get("code", ["600519"])[0]))
             return
 
         self.send_json({"message": "Not found"}, status=404)
